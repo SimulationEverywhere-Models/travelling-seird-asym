@@ -1,7 +1,6 @@
 #!/bin/python3
 
 import matplotlib.pyplot as plt
-import runner
 import re
 import math
 import itertools
@@ -72,6 +71,6 @@ def main(in_file):
 
 
 
-with open("./output_state.txt") as in_file:
+with open(os.path.join(".", "simulation_results", "output_state.txt")) as in_file:
     main(in_file)
 

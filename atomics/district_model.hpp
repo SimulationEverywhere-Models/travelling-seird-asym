@@ -6,6 +6,7 @@
 #include <string>
 #include <random>
 #include <cmath>
+#include <concepts>
 
 #include "./district.hpp"
 
@@ -17,43 +18,41 @@
 
 using namespace cadmium;
 using namespace std;
-using namespace pop;
 
-//struct district{
-//    int n;
-//    int k;
-//};
 
-//Port definition
-struct district_ports{
-    struct report          : public out_port<population> { };
-    struct people_out      : public out_port<pair<string, population>> { };
 
-    struct new_travel_rate : public in_port<tuple<string, string, population>> { };
-    struct new_params      : public in_port<pair<string, model_params>> { };
-    struct people_in       : public in_port<pair<string, population>> { };
-};
-
-template<typename TIME>
+template<typename TIME, typename PARAMS, typename VALUE, typename IDENTIFIER=std::string, typename SCALAR=VALUE>
+    requires(makes_a_valid_district<PARAMS, VALUE, IDENTIFIER, SCALAR>)
 class district_model{
     public:
+    //Port definition
+    struct ports{
+        struct report          : public out_port<VALUE> { };
+        struct people_out      : public out_port<pair<IDENTIFIER, VALUE>> { };
+
+        struct new_travel_rate : public in_port<tuple<IDENTIFIER, IDENTIFIER, SCALAR>> { };
+        struct new_params      : public in_port<pair<IDENTIFIER, PARAMS>> { };
+        struct people_in       : public in_port<pair<IDENTIFIER, VALUE>> { };
+    };
+
     const TIME dt{0.01};
+    using district_type=district<PARAMS, VALUE, IDENTIFIER, SCALAR>;
     // ports definition
     using input_ports=std::tuple<
-        typename district_ports::new_travel_rate,
-        typename district_ports::new_params,
-        typename district_ports::people_in
+        typename ports::new_travel_rate,
+        typename ports::new_params,
+        typename ports::people_in
          >;
 
 
     using output_ports=std::tuple<
-        typename district_ports::report,
-        typename district_ports::people_out
+        typename ports::report,
+        typename ports::people_out
          >;
 
     // state definition
     struct state_type{
-        district d;
+        district_type d;
     };
     state_type state;
 
@@ -61,7 +60,7 @@ class district_model{
 	district_model() = default;
 
 	// constructor with passed variable
-    district_model(district var) {
+    district_model(district_type var) {
         state.d = var;
 	}
 
@@ -71,23 +70,23 @@ class district_model{
     }
 
 	// external transition
-    void external_transition(double, typename make_message_bags<input_ports>::type mbs) {
+    void external_transition(TIME, typename make_message_bags<input_ports>::type mbs) {
         /* for each new travel rate, if they are talking to me, update my travel rates */
-        for(const auto& [me, id, s] : get_messages<typename district_ports::new_travel_rate>(mbs)){
+        for(const auto& [me, id, s] : get_messages<typename ports::new_travel_rate>(mbs)){
             if(me == state.d.id){
                 state.d.set_connectivity(id, s);
             }
         }
 
         /* for each new set of morel params, if they are talking to me, update my params */
-        for(const auto& [me, params] : get_messages<typename district_ports::new_params>(mbs)){
+        for(const auto& [me, params] : get_messages<typename ports::new_params>(mbs)){
             if(me == state.d.id){
                 state.d.params = params;
             }
         }
 
         /* for each new set of morel params, if they are talking to me, update my params */
-        for(const auto& [me, pop] : get_messages<typename district_ports::people_in>(mbs)){
+        for(const auto& [me, pop] : get_messages<typename ports::people_in>(mbs)){
             if(me == state.d.id){
                 state.d.val += pop;
             }
@@ -104,7 +103,7 @@ class district_model{
     typename make_message_bags<output_ports>::type output() const {
         typename make_message_bags<output_ports>::type bags;
         /* Report your pop before this call */
-        get_messages<typename district_ports::report>(bags).push_back(state.d.val);
+        get_messages<typename ports::report>(bags).push_back(state.d.val);
 
         /* Calculate how much you should tell yourself to change */
         auto d = delta(state.d.val, state.d.params, dt);
@@ -116,21 +115,21 @@ class district_model{
         for(auto [target, s] : state.d.connectivity){
             auto temp = s*state.d.val;
             d -= temp;
-            get_messages<typename district_ports::people_out>(bags).push_back({target, temp});
+            get_messages<typename ports::people_out>(bags).push_back({target, temp});
         }
 
         /* Remember to send the message to your self */
-        get_messages<typename district_ports::people_out>(bags).push_back({state.d.id, d});
+        get_messages<typename ports::people_out>(bags).push_back({state.d.id, d});
         return bags;
     }
 
     // confluence transition
-    void confluence_transition(TIME e, typename make_message_bags<input_ports>::type mbs) {
+    void confluence_transition(TIME, typename make_message_bags<input_ports>::type mbs) {
 		internal_transition();
-        external_transition(e, move(mbs));
+        external_transition({}, move(mbs));
     }
 
-    friend ostringstream& operator<<(ostringstream& os, const typename district_model<TIME>::state_type& i) {
+    friend ostringstream& operator<<(ostringstream& os, const typename district_model<TIME, PARAMS, VALUE, IDENTIFIER, SCALAR>::state_type& i) {
         os << i.d;
 		return os;
     }

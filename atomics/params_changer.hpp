@@ -13,30 +13,30 @@
 
 using namespace cadmium;
 using namespace std;
-using namespace pop;
 
 
-//Port definition
-struct param_changer_ports{
-    struct new_params      : public out_port<pair<string, model_params>> { };
-};
-
-
-template<typename TIME>
+template<typename TIME, typename PARAMS, typename VALUE, typename IDENTIFIER=std::string, typename SCALAR=VALUE>
+    requires(makes_a_valid_district<PARAMS, VALUE, IDENTIFIER, SCALAR>)
 class params_changer{
     public:
+    //Port definition
+    struct ports{
+        struct new_params : public out_port<pair<IDENTIFIER, PARAMS>> { };
+    };
+
     // ports definition
     using input_ports=std::tuple<
          >;
 
 
     using output_ports=std::tuple<
-        typename param_changer_ports::new_params
+        typename ports::new_params
          >;
 
+    using state_queue_type = vector<tuple<TIME, IDENTIFIER, PARAMS>>;
 
     struct state_type{
-        vector<tuple<TIME, string, model_params>> q;
+        state_queue_type q;
         TIME cur_time;
     };
     state_type state;
@@ -46,7 +46,7 @@ class params_changer{
 	params_changer() = default;
 
 	// constructor with passed variable
-    params_changer(vector<tuple<TIME, string, model_params>> rule_change_set) : state{rule_change_set, 0}{
+    params_changer(state_queue_type rule_change_set) : state{rule_change_set, 0}{
         sort(begin(state.q), end(state.q), [](const auto& lhs, const auto& rhs){return get<0>(lhs) < get<0>(rhs);});
 	}
 
@@ -78,7 +78,7 @@ class params_changer{
     typename make_message_bags<output_ports>::type output() const {
         typename make_message_bags<output_ports>::type bags;
         /* send 1 new set of params */
-        get_messages<typename param_changer_ports::new_params>(bags).push_back({get<1>(state.q[0]), get<2>(state.q[0])});
+        get_messages<typename ports::new_params>(bags).push_back({get<1>(state.q[0]), get<2>(state.q[0])});
 
         return bags;
     }
@@ -89,7 +89,7 @@ class params_changer{
         external_transition({0}, move(mbs));
     }
 
-    friend ostringstream& operator<<(ostringstream& os, const typename params_changer<TIME>::state_type& i) {
+    friend ostringstream& operator<<(ostringstream& os, const typename params_changer<TIME, PARAMS, VALUE, IDENTIFIER, SCALAR>::state_type& i) {
         os << i.q.size() << " to go";
 
 		return os;
