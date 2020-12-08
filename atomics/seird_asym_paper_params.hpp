@@ -1,5 +1,18 @@
-#ifndef _SEIRD_ASYM_PAPER__HPP
-#define _SEIRD_ASYM_PAPER__HPP
+#ifndef _SEIRD_ASYM_PAPER_PARAMS__HPP
+#define _SEIRD_ASYM_PAPER_PARAMS__HPP
+
+/*
+
+see: github.com/SimulationEverywhere-Models/Cadmium-SEIR-Asyn for this model on it's own
+
+paper:
+
+Tang, B., Wang, X., Li, Q., Bragazzi, N. L., Tang, S., Xiao, Y., & Wu, J. (2020).
+Estimation of the Transmission Risk of the 2019-nCoV and Its Implication for
+Public Health Interventions. Journal of clinical medicine, 9(2), 462.
+https://doi.org/10.3390/jcm9020462
+
+*/
 
 #include <iostream>
 #include <concepts>
@@ -155,4 +168,4 @@ __attribute__((flatten)) constexpr  population delta(const population& pop, cons
     return temp;
 }
 
-#endif /* _SEIRD_ASYM_PAPER__HPP */
+#endif /* _SEIRD_ASYM_PAPER_PARAMS__HPP */

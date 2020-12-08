@@ -1,6 +1,12 @@
 #ifndef _SEIRD_MODEL__HPP
 #define _SEIRD_MODEL__HPP
 
+/*
+
+see: github.com/SimulationEverywhere-Models/Cadmium-SEIRD for this model on it's own
+
+*/
+
 #include <iostream>
 #include <concepts>
 #include <algorithm>
