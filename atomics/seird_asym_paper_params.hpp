@@ -8,7 +8,7 @@
 
 #include "../atomics/population.hpp"
 
-struct seird_asym_paper {
+struct seird_asym_paper_params {
     double c;  /* contact_rate  */
     double b;  /* infectivity_from_contact */
     double q;  /* quarantined_chance_from_contact */
@@ -23,11 +23,11 @@ struct seird_asym_paper {
     double a;  /* death_rate */
     double t;  /* asymptomatic_infectivity_conversion_factor */
 
-    auto operator<=>(const seird_asym_paper&) const = default;
-    bool operator==(const seird_asym_paper&) const = default;
+    auto operator<=>(const seird_asym_paper_params&) const = default;
+    bool operator==(const seird_asym_paper_params&) const = default;
 };
 
-std::ostream& operator<<(std::ostream& os, const seird_asym_paper& mp){
+std::ostream& operator<<(std::ostream& os, const seird_asym_paper_params& mp){
     return os    << "["
         << mp.c  << ", " /* contact_rate  */
         << mp.b  << ", " /* infectivity_from_contact */
@@ -44,7 +44,7 @@ std::ostream& operator<<(std::ostream& os, const seird_asym_paper& mp){
         << mp.t  << "]"; /* asymptomatic_infectivity_conversion_factor */
 }
 
-std::istream& operator>>(std::istream& is, seird_asym_paper& mp){
+std::istream& operator>>(std::istream& is, seird_asym_paper_params& mp){
     is.ignore(std::numeric_limits<std::streamsize>::max(), '[');
 
     (is >> mp.c ).ignore(std::numeric_limits<std::streamsize>::max(), ',');
@@ -64,35 +64,35 @@ std::istream& operator>>(std::istream& is, seird_asym_paper& mp){
     return is;
 }
 
-constexpr double susceptible_to_exposed      (const population& pop, const seird_asym_paper& params){
+constexpr double susceptible_to_exposed      (const population& pop, const seird_asym_paper_params& params){
     return params.c * ( pop.infective + params.t * pop.asymptomatic ) * pop.susceptible *   params.b *(1-params.q);
 }
-constexpr double susceptible_to_exposed_q    (const population& pop, const seird_asym_paper& params){
+constexpr double susceptible_to_exposed_q    (const population& pop, const seird_asym_paper_params& params){
     return params.c * ( pop.infective + params.t * pop.asymptomatic ) * pop.susceptible *   params.b *   params.q;
 }
-constexpr double susceptible_to_susceptible_q(const population& pop, const seird_asym_paper& params){
+constexpr double susceptible_to_susceptible_q(const population& pop, const seird_asym_paper_params& params){
     return params.c * ( pop.infective + params.t * pop.asymptomatic ) * pop.susceptible *(1-params.b)*   params.q;
 }
 
-constexpr double susceptible_q_to_susceptible(const population& pop, const seird_asym_paper& params){return params.l * pop.susceptible_q;}
+constexpr double susceptible_q_to_susceptible(const population& pop, const seird_asym_paper_params& params){return params.l * pop.susceptible_q;}
 
-constexpr double exposed_to_infective       (const population& pop, const seird_asym_paper& params){return params.e *   params.n * pop.exposed;}
-constexpr double exposed_to_asymptomatic    (const population& pop, const seird_asym_paper& params){return params.e *(1-params.n)* pop.exposed;}
+constexpr double exposed_to_infective       (const population& pop, const seird_asym_paper_params& params){return params.e *   params.n * pop.exposed;}
+constexpr double exposed_to_asymptomatic    (const population& pop, const seird_asym_paper_params& params){return params.e *(1-params.n)* pop.exposed;}
 
-constexpr double exposed_q_to_infective_q   (const population& pop, const seird_asym_paper& params){return params.dq * pop.exposed_q;}
+constexpr double exposed_q_to_infective_q   (const population& pop, const seird_asym_paper_params& params){return params.dq * pop.exposed_q;}
 
-constexpr double infective_to_infective_q(const population& pop, const seird_asym_paper& params){return params.di * pop.infective;}
-constexpr double infective_to_recovered  (const population& pop, const seird_asym_paper& params){return params.yi * pop.infective;}
-constexpr double infective_to_deceased   (const population& pop, const seird_asym_paper& params){return params.a  * pop.infective;}
+constexpr double infective_to_infective_q(const population& pop, const seird_asym_paper_params& params){return params.di * pop.infective;}
+constexpr double infective_to_recovered  (const population& pop, const seird_asym_paper_params& params){return params.yi * pop.infective;}
+constexpr double infective_to_deceased   (const population& pop, const seird_asym_paper_params& params){return params.a  * pop.infective;}
 
-constexpr double infective_q_to_recovered(const population& pop, const seird_asym_paper& params){return params.yh * pop.infective_q;}
-constexpr double infective_q_to_deceased (const population& pop, const seird_asym_paper& params){return params.a  * pop.infective_q;}
+constexpr double infective_q_to_recovered(const population& pop, const seird_asym_paper_params& params){return params.yh * pop.infective_q;}
+constexpr double infective_q_to_deceased (const population& pop, const seird_asym_paper_params& params){return params.a  * pop.infective_q;}
 
-constexpr double asymptomatic_to_recovered     (const population& pop, const seird_asym_paper& params){return params.ya * pop.asymptomatic;}
+constexpr double asymptomatic_to_recovered     (const population& pop, const seird_asym_paper_params& params){return params.ya * pop.asymptomatic;}
 
 /* asymptomatic_q is not in the paper, so they get the same equations as infective_q*/
-constexpr double asymptomatic_q_to_recovered(const population& pop, const seird_asym_paper& params){return params.yh * pop.asymptomatic_q;}
-constexpr double asymptomatic_q_to_deceased (const population& pop, const seird_asym_paper& params){return params.a  * pop.asymptomatic_q;}
+constexpr double asymptomatic_q_to_recovered(const population& pop, const seird_asym_paper_params& params){return params.yh * pop.asymptomatic_q;}
+constexpr double asymptomatic_q_to_deceased (const population& pop, const seird_asym_paper_params& params){return params.a  * pop.asymptomatic_q;}
 
 /*
 
@@ -108,7 +108,7 @@ double recovered;
 double deceased;
 
 */
-__attribute__((flatten)) constexpr  population delta(const population& pop, const seird_asym_paper& params, const double dt){
+__attribute__((flatten)) constexpr  population delta(const population& pop, const seird_asym_paper_params& params, const double dt){
     population temp{
         /* susceptible */
             +susceptible_q_to_susceptible(pop, params)
@@ -151,7 +151,7 @@ __attribute__((flatten)) constexpr  population delta(const population& pop, cons
             +infective_q_to_deceased(pop, params)
             +asymptomatic_q_to_deceased(pop, params)
     };
-    temp *= dt;
+    temp*=dt;
     return temp;
 }
 
