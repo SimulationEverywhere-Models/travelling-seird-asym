@@ -54,12 +54,12 @@ def plot_file(in_file):
     for name, val in vals.items():
         plt.plot(times[:len(val)], [math.log10(i) for i in val], label=name)
 
-    plt.title("Figure A, Recreated")
+    plt.title("log10(infective) v Time in days")
     plt.xlim(0, 55)
     plt.ylim(1, 5.5)
     plt.legend()
 
-    figname = "contact_rate.png"#f"{file_number:0{1+len(str(len(files)))}},{name[:-len('.csv')]+'.png'}"
+    figname = "log_of_infective.png"#f"{file_number:0{1+len(str(len(files)))}},{name[:-len('.csv')]+'.png'}"
     print(figname)
     plt.savefig(figname)
     plt.close()
