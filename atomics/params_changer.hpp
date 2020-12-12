@@ -15,8 +15,7 @@ using namespace cadmium;
 using namespace std;
 
 
-template<typename TIME, typename PARAMS, typename VALUE, typename IDENTIFIER=std::string, typename SCALAR=VALUE>
-    requires(makes_a_valid_district<PARAMS, VALUE, IDENTIFIER, SCALAR>)
+template<typename TIME, typename PARAMS, typename IDENTIFIER=std::string>
 class params_changer{
     public:
     //Port definition
@@ -89,7 +88,7 @@ class params_changer{
         external_transition({0}, move(mbs));
     }
 
-    friend ostringstream& operator<<(ostringstream& os, const typename params_changer<TIME, PARAMS, VALUE, IDENTIFIER, SCALAR>::state_type& i) {
+    friend ostringstream& operator<<(ostringstream& os, const typename params_changer<TIME, PARAMS, IDENTIFIER>::state_type& i) {
         os << i.q.size() << " to go";
 
 		return os;

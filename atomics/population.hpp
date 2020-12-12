@@ -10,17 +10,7 @@
 
 /*
 
-
-__attribute__((flatten)) => tells the compiler to inline every made by this function
-
-constexpr => tells the compiler that this is an inlineable function that will allways return the same output givin the same input, and that it can be run at compile time
-
-auto operator<=>(const foo&) const = default; => a shortcut for implementing all of < > <= >=, using structural comparasons.
-
-
-const everything that can be const
-
-perfer non-friend non-member functions
+this class acts as POP, DELTA, and TRAVEL
 
 */
 //#define constexpr inline
@@ -39,6 +29,33 @@ struct population {
 
     auto operator<=>(const population&) const = default;
     bool operator==(const population&) const = default;
+
+    constexpr population operator-() const{
+        return {-susceptible,
+                -susceptible_q,
+                -exposed,
+                -exposed_q,
+                -infective,
+                -infective_q,
+                -asymptomatic,
+                -asymptomatic_q,
+                -recovered,
+                -deceased};
+    }
+
+    constexpr population& operator+=(const population& rhs){
+            susceptible    -= rhs.susceptible;
+            susceptible_q  -= rhs.susceptible_q;
+            exposed        -= rhs.exposed;
+            exposed_q      -= rhs.exposed_q;
+            infective      -= rhs.infective;
+            infective_q    -= rhs.infective_q;
+            asymptomatic   -= rhs.asymptomatic;
+            asymptomatic_q -= rhs.asymptomatic_q;
+            recovered      -= rhs.recovered;
+            deceased       -= rhs.deceased;
+            return *this;
+        }
 
 };
 
@@ -74,7 +91,29 @@ std::istream& operator>>(std::istream& is, population& pop){
 
 }
 
-/* pop_l += pop_r */
+constexpr population travel(const population& t, const population& pop, auto&& dt)
+    requires(std::integral<std::remove_cvref_t<decltype(dt)>> || std::floating_point<std::remove_cvref_t<decltype(dt)>>)
+    {
+    return {
+            dt * pop.susceptible    * t.susceptible,
+            dt * pop.susceptible_q  * t.susceptible_q,
+            dt * pop.exposed        * t.exposed,
+            dt * pop.exposed_q      * t.exposed_q,
+            dt * pop.infective      * t.infective,
+            dt * pop.infective_q    * t.infective_q,
+            dt * pop.asymptomatic   * t.asymptomatic,
+            dt * pop.asymptomatic_q * t.asymptomatic_q,
+            dt * pop.recovered      * t.recovered,
+            dt * pop.deceased       * t.deceased
+    };
+}
+
+/*
+operator-()
+operator+=()
+*/
+
+/* pop_l += pop_r
 constexpr population& operator+=(auto& lhs, auto&& rhs) requires(std::same_as<population, std::remove_cvref_t<decltype(lhs)>> && std::same_as<population, std::remove_cvref_t<decltype(rhs)>>){
     lhs.susceptible    += rhs.susceptible;
     lhs.susceptible_q  += rhs.susceptible_q;
@@ -88,8 +127,8 @@ constexpr population& operator+=(auto& lhs, auto&& rhs) requires(std::same_as<po
     lhs.deceased       += rhs.deceased;
     return lhs;
 }
-
-/* pop_l -= pop_r */
+*/
+/* pop_l -= pop_r
 constexpr population& operator-=(auto& lhs, auto&& rhs) requires(std::same_as<population, std::remove_cvref_t<decltype(lhs)>> && std::same_as<population, std::remove_cvref_t<decltype(rhs)>>){
     lhs.susceptible    -= rhs.susceptible;
     lhs.susceptible_q  -= rhs.susceptible_q;
@@ -103,8 +142,8 @@ constexpr population& operator-=(auto& lhs, auto&& rhs) requires(std::same_as<po
     lhs.deceased       -= rhs.deceased;
     return lhs;
 }
-
-/* pop_l *= pop_r */
+*/
+/* pop_l *= pop_r
 constexpr population& operator*=(auto& lhs, auto&& rhs) requires(std::same_as<population, std::remove_cvref_t<decltype(lhs)>> && std::same_as<population, std::remove_cvref_t<decltype(rhs)>>){
     lhs.susceptible    *= rhs.susceptible;
     lhs.susceptible_q  *= rhs.susceptible_q;
@@ -118,8 +157,8 @@ constexpr population& operator*=(auto& lhs, auto&& rhs) requires(std::same_as<po
     lhs.deceased       *= rhs.deceased;
     return lhs;
 }
-
-/* pop_l *= number */
+*/
+/* pop_l *= number
 constexpr population& operator*=(auto& lhs, auto&& rhs) requires(std::same_as<population, std::remove_cvref_t<decltype(lhs)>> && (std::integral<std::remove_cvref_t<decltype(rhs)>> || std::floating_point<std::remove_cvref_t<decltype(rhs)>>)){
     lhs.susceptible    *= rhs;
     lhs.susceptible_q  *= rhs;
@@ -133,21 +172,21 @@ constexpr population& operator*=(auto& lhs, auto&& rhs) requires(std::same_as<po
     lhs.deceased       *= rhs;
     return lhs;
 }
-
-/* pop_l + pop_r */
+*/
+/* pop_l + pop_r
 __attribute__((flatten)) constexpr population operator+(auto&& lhs, auto&& rhs) requires(std::same_as<population, std::remove_cvref_t<decltype(lhs)>> && std::same_as<population, std::remove_cvref_t<decltype(rhs)>>){
     population temp{lhs};
     return temp += rhs;
 }
-
-/* pop_l - pop_r */
+*/
+/* pop_l - pop_r
 __attribute__((flatten)) constexpr population operator-(auto&& lhs, auto&& rhs) requires(std::same_as<population, std::remove_cvref_t<decltype(lhs)>> && std::same_as<population, std::remove_cvref_t<decltype(rhs)>>){
     population temp{lhs};
     return temp -= rhs;
 }
-
+*/
 /* pop_l * pop_r */
-/* pop_l * number */
+/* pop_l * number
 __attribute__((flatten)) constexpr population operator*(auto&& lhs, auto&& rhs)
         requires(std::same_as<population, std::remove_cvref_t<decltype(lhs)>> && (
             std::same_as<population, std::remove_cvref_t<decltype(rhs)>> ||
@@ -157,25 +196,26 @@ __attribute__((flatten)) constexpr population operator*(auto&& lhs, auto&& rhs)
     population temp{lhs};
     return temp *= rhs;
 }
-
-/* number * pop_r */
+*/
+/* number * pop_r
 __attribute__((flatten)) constexpr population operator*(auto& lhs, auto&& rhs)
         requires((std::integral<std::remove_cvref_t<decltype(lhs)>> || std::floating_point<std::remove_cvref_t<decltype(lhs)>>)
             && std::same_as<population, std::remove_cvref_t<decltype(rhs)>>)
 {
     return rhs*lhs;
 }
-
-/* +pop */
+*/
+/* +pop
 __attribute__((flatten)) constexpr population operator+(auto&& p) requires std::same_as<population, std::remove_cvref_t<decltype(p)>> {
     return {p};
 }
-
-/* -pop */
+*/
+/* -pop
 __attribute__((flatten)) constexpr population operator-(auto&& p) requires std::same_as<population, std::remove_cvref_t<decltype(p)>> {
     return p*(-1);
 }
-
+*/
 //#undef constexpr
+
 #endif /* _POPULATION__HPP */
 
