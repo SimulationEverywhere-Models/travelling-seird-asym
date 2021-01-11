@@ -113,7 +113,7 @@ class district_model{
             Send them away, and subtract them from the number of people that we are going to have next step
          */
         for(auto [target, s] : state.d.connectivity){
-            auto temp = s*state.d.val*dt;
+            auto temp = s*state.d.val;
             d -= temp;
             get_messages<typename ports::people_out>(bags).push_back({target, temp});
         }
