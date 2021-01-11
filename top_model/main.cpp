@@ -22,8 +22,6 @@
 
 #undef concept
 
-//#include "../atomics/banded_zhong_population.hpp"
-
 #include "../atomics/population.hpp"
 #include "../atomics/seird_asym_paper_params.hpp"
 #include "../atomics/seird_model_params.hpp"
@@ -72,11 +70,11 @@ struct SEIRD_defs{
 
 
 /* template specalizations for this main, we need to leave TIME unspecialized for dynamic::translate::make_dynamic_atomic_model() to work correctly */
-using paper_district = district<TIME, seird_asym_paper_params, population>;
+using paper_district = district<seird_asym_paper_params, population>;
 template<typename T> using paper_model = district_model<T, seird_asym_paper_params, population>;
 template<typename T> using paper_params_changer = params_changer<T, seird_asym_paper_params, population>;
 
-using seird_district = district<TIME, seird_model_params, population>;
+using seird_district = district<seird_model_params, population>;
 template<typename T> using seird_model = district_model<T, seird_model_params, population>;
 template<typename T> using seird_params_changer = params_changer<T, seird_model_params, population>;
 
@@ -91,7 +89,7 @@ int main(){
         {14.781, 2.1011e-8, 1.8887e-7, 0.142857, 0.071428, 0.86834, 0.13266, 0.1259, 0.33029, 0.13978, 0.11624, 1.7826e-5, 0},
         {11081000, 739, 105.1, 1.1642, 27.679, 1, 53.839, 0, 2, 0},
         {}};
-    /*
+
 
     paper_district sample_d_08{"c=0.8",
         {14.781, 2.1011e-8, 1.8887e-7, 0.142857, 0.071428, 0.86834, 0.13266, 0.1259, 0.33029, 0.13978, 0.11624, 1.7826e-5, 0},
@@ -129,9 +127,9 @@ int main(){
 	shared_ptr<dynamic::modeling::model> c01 = dynamic::translate::make_dynamic_atomic_model<paper_model, TIME, paper_district>("c=0.1", std::move(sample_d_01));
 
     seird_district seird_sample{"simple seird town",
-        /* mortality(as a fraction, not a %), infectivity_period, incubation_period, transmission_rate *
+        /* mortality(as a fraction, not a %), infectivity_period, incubation_period, transmission_rate */
         {0.105, 14, 5, 2.5},
-        /* susceptible, _, exposed, _, infective, _, _, _, recovered, deceased *
+        /* susceptible, _, exposed, _, infective, _, _, _, recovered, deceased */
         {100000, 0, 0, 0, 100, 0, 0, 0, 0, 0},
         {}};
 
@@ -155,7 +153,7 @@ int main(){
             dynamic::translate::make_EOC<paper_model<TIME>::ports::report, SEIRD_defs::report>("c=0.1"),
             dynamic::translate::make_EOC<seird_model<TIME>::ports::report, SEIRD_defs::report>("simple seird town")};
 
-    /* Each model MUST be piped into itself to function *
+    /* Each model MUST be piped into itself to function */
 
     dynamic::modeling::ICs ics_SEIRD  = {
             dynamic::translate::make_IC<paper_model<TIME>::ports::people_out, paper_model<TIME>::ports::people_in>("c=0.3", "c=0.3"),
@@ -179,6 +177,6 @@ int main(){
 
     dynamic::engine::runner<TIME, logger_top> r(SEIRD, {0});
     r.run_until(56);
-    */
+
     return 0;
 }

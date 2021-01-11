@@ -64,8 +64,7 @@ double pop.deceased;
 
     I assume that q leads to more q, that q does not move around, and that asymptomatic do not die
 */
-__attribute__((flatten)) constexpr  population delta(const seird_model_params& params, const population& pop, auto&& dt)
-    requires(std::integral<std::remove_cvref_t<decltype(dt)>> || std::floating_point<std::remove_cvref_t<decltype(dt)>>){
+__attribute__((flatten)) constexpr  population delta(const population& pop, const seird_model_params& params, const double dt){
     auto total_moving_pop = pop.susceptible + pop.exposed + pop.infective + pop.asymptomatic + pop.recovered;
 
     auto susceptible_to_exposed = std::min(dt * params.transmission_rate * pop.susceptible * pop.infective / total_moving_pop, pop.susceptible);

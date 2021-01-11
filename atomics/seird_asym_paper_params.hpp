@@ -121,60 +121,51 @@ double recovered;
 double deceased;
 
 */
-__attribute__((flatten)) constexpr population delta(const seird_asym_paper_params& params, const population& pop, auto&& dt)
-    requires(std::integral<std::remove_cvref_t<decltype(dt)>> || std::floating_point<std::remove_cvref_t<decltype(dt)>>){
-    return {
-        /* susceptible */(
+__attribute__((flatten)) constexpr  population delta(const population& pop, const seird_asym_paper_params& params, const double dt){
+    population temp{
+        /* susceptible */
             +susceptible_q_to_susceptible(pop, params)
             -susceptible_to_susceptible_q(pop, params)
             -susceptible_to_exposed(pop, params)
             -susceptible_to_exposed_q(pop, params)
-        )*dt
-        ,/* susceptible_q */(
+        ,/* susceptible_q */
             +susceptible_to_susceptible_q(pop, params)
             -susceptible_q_to_susceptible(pop, params)
-        )*dt
-        ,/* exposed */(
+        ,/* exposed */
             +susceptible_to_exposed(pop, params)
             -exposed_to_infective(pop, params)
             -exposed_to_asymptomatic(pop, params)
-        )*dt
-        ,/* exposed_q */(
+        ,/* exposed_q */
             +susceptible_to_exposed_q(pop, params)
             -exposed_q_to_infective_q(pop, params)
-        )*dt
-        ,/* infective */(
+        ,/* infective */
             +exposed_to_infective(pop, params)
             -infective_to_infective_q(pop, params)
             -infective_to_recovered(pop, params)
             -infective_to_deceased(pop, params)
-        )*dt
-        ,/* infective_q */(
+        ,/* infective_q */
             +exposed_q_to_infective_q(pop, params)
             +infective_to_infective_q(pop, params)
             -infective_q_to_recovered(pop, params)
             -infective_q_to_deceased(pop, params)
-        )*dt
-        ,/* asymptomatic */(
+        ,/* asymptomatic */
             +exposed_to_asymptomatic(pop, params)
             -asymptomatic_to_recovered(pop, params)
-        )*dt
-        ,/* asymptomatic_q */(
+        ,/* asymptomatic_q */
             -asymptomatic_q_to_recovered(pop, params)
             -asymptomatic_q_to_deceased(pop, params)
-        )*dt
-        ,/* recovered */(
+        ,/* recovered */
             +infective_to_recovered(pop, params)
             +infective_q_to_recovered(pop, params)
             +asymptomatic_to_recovered(pop, params)
             +asymptomatic_q_to_recovered(pop, params)
-        )*dt
-        ,/* deceased */(
+        ,/* deceased */
             +infective_to_deceased(pop, params)
             +infective_q_to_deceased(pop, params)
             +asymptomatic_q_to_deceased(pop, params)
-        )*dt
     };
+    temp*=dt;
+    return temp;
 }
 
 #endif /* _SEIRD_ASYM_PAPER_PARAMS__HPP */

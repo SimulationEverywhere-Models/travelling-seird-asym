@@ -19,28 +19,40 @@ concept streamable =
         std::cin >> a;
     };
 
-template<typename TIME, typename PARAMS, typename POP, typename DELTA, typename TRAVEL, typename IDENTIFIER>
-concept makes_a_valid_district =
-    requires(TIME e, PARAMS par, POP pop, DELTA d, TRAVEL t, IDENTIFIER id){
-        {id == id}           -> std::convertible_to<bool>;
-        {-d}                 -> std::convertible_to<DELTA>;
-        {travel(t, pop, e)}  -> std::convertible_to<DELTA>;
-        {delta(par, pop, e)} -> std::convertible_to<DELTA>;
-        {pop += d}           -> std::convertible_to<POP&>;
-    };
+template<typename LHS, typename RHS>
+    concept multipliable =
+        requires(LHS lhs, RHS rhs){
+            rhs *= lhs;
+            rhs = lhs*rhs;
+        };
 
-/* district<TIME, PARAMS, POP, DELTA, TRAVEL, IDENTIFIER> */
-template<typename TIME, streamable PARAMS, streamable POP, streamable DELTA=POP, streamable TRAVEL=POP, streamable IDENTIFIER=std::string>
+template<typename THING>
+    concept addable =
+        requires(THING a){
+            a += a;
+            a = a + a;
+            a -= a;
+            a = a - a;
+        };
+
+template<typename VALUE, typename PARAMS>
+    concept stepable =
+        requires(VALUE v, PARAMS p, double t){
+            v = delta(v, p, {t});
+        };
+
+template<typename PARAMS, addable VALUE, std::equality_comparable IDENTIFIER=std::string, typename SCALAR=VALUE>
     requires(
-        makes_a_valid_district<TIME, PARAMS, POP, DELTA, TRAVEL, IDENTIFIER>
+        streamable<IDENTIFIER> && streamable<PARAMS> && streamable<VALUE> && streamable<SCALAR> &&
+        multipliable<SCALAR, VALUE> && stepable<VALUE, PARAMS>
     )
 struct district {
     IDENTIFIER id;
     PARAMS params;
-    POP  pop;
-    std::vector<std::pair<IDENTIFIER, TRAVEL>> connectivity;
+    VALUE  val;
+    std::vector<std::pair<IDENTIFIER, SCALAR>> connectivity;
 
-    std::optional<TRAVEL> get_connectivity(IDENTIFIER target){
+    std::optional<SCALAR> get_connectivity(IDENTIFIER target){
         for(const auto& [t, s] : connectivity){
             if(t == target){
                 return s;
@@ -49,30 +61,26 @@ struct district {
         return {};
     }
 
-    std::optional<DELTA> get_travel(IDENTIFIER target, TIME dt){
+    std::optional<VALUE> get_travel(IDENTIFIER target){
         auto s = get_connectivity(target);
         if(s){
-            return travel((*s), pop, dt);
+            return (*s)*val;
         }else{
             return {};
         }
     }
 
-    void set_connectivity(IDENTIFIER target, TRAVEL t){
-        for(auto& [key, val] : connectivity){
-            if(key == target){
-                val = t;
+    void set_connectivity(IDENTIFIER target, SCALAR scalar){
+        for(auto& [t, s] : connectivity){
+            if(t == target){
+                s = scalar;
                 return;
             }
         }
-        connectivity.push_back({target, t});
+        connectivity.push_back({target, scalar});
     }
 
-    DELTA get_delta(TIME t){
-        return delta(params, pop, t);
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const district<TIME, PARAMS, POP, DELTA, TRAVEL, IDENTIFIER>& d){
+    friend std::ostream& operator<<(std::ostream& os, const district<PARAMS, VALUE, IDENTIFIER, SCALAR>& d){
         os << "[";
         if constexpr(std::same_as<IDENTIFIER, std::string>){
             os << std::quoted(d.id);
@@ -86,10 +94,10 @@ struct district {
             os << d.params;
         }
         os << ", ";
-        if constexpr(std::same_as<POP, std::string>){
-            os << std::quoted(d.pop);
+        if constexpr(std::same_as<VALUE, std::string>){
+            os << std::quoted(d.val);
         }else{
-            os << d.pop;
+            os << d.val;
         }
         os << ", " << d.connectivity.size() << ", [";
 
@@ -103,7 +111,7 @@ struct district {
                 os << t;
             }
             os << ", ";
-            if constexpr(std::same_as<TRAVEL, std::string>){
+            if constexpr(std::same_as<SCALAR, std::string>){
                 os << std::quoted(s);
             }else{
                 os << s;
@@ -113,7 +121,7 @@ struct district {
         return os;
     }
 
-    friend std::istream& operator>>(std::istream& is, district<TIME, PARAMS, POP, DELTA, TRAVEL, IDENTIFIER>& d){
+    friend std::istream& operator>>(std::istream& is, district<PARAMS, VALUE, IDENTIFIER, SCALAR>& d){
         is.ignore(std::numeric_limits<std::streamsize>::max(), '[');
 
 
@@ -133,10 +141,10 @@ struct district {
 
         is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
 
-        if constexpr(std::same_as<POP, std::string>){
-            is >> std::quoted(d.pop);
+        if constexpr(std::same_as<VALUE, std::string>){
+            is >> std::quoted(d.val);
         }else{
-            is >> d.pop;
+            is >> d.val;
         }
         is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
 
@@ -148,7 +156,7 @@ struct district {
 
         for(size_t i = 0; i<cons; i++){
 
-            std::pair<IDENTIFIER, TRAVEL> p;
+            std::pair<IDENTIFIER, SCALAR> p;
             auto& [t, s] = p;
 
             is.ignore(std::numeric_limits<std::streamsize>::max(), '[');
@@ -159,13 +167,11 @@ struct district {
             }
 
             is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
-            if constexpr(std::same_as<TRAVEL, std::string>){
+            if constexpr(std::same_as<SCALAR, std::string>){
                 is >> std::quoted(s);
             }else{
                 is >> s;
             }
-
-            d.connectivity.push_back(p);
 
         }
 
@@ -175,6 +181,10 @@ struct district {
         return is;
     }
 };
+
+template<typename PARAMS, typename VALUE, typename IDENTIFIER, typename SCALAR>
+concept makes_a_valid_district =
+    requires(district<PARAMS, VALUE, IDENTIFIER, SCALAR> d){true;};
 
 
 #endif /* _DISTRICT__HPP */
