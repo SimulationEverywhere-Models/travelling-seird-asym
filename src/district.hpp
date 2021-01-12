@@ -20,7 +20,7 @@ template<typename TIME, typename PARAMS, typename POP, typename DELTA, typename 
 concept makes_a_valid_district =
     requires(TIME dt, PARAMS params, POP pop, DELTA delta_pop, TRAVEL travel_params, IDENTIFIER id){
         {id == id}                       -> std::convertible_to<bool>;
-        {delta_pop += delta_pop}         -> std::convertible_to<DELTA&>;
+        //{delta_pop += delta_pop}         -> std::convertible_to<DELTA&>;
         {delta_pop -= delta_pop}         -> std::convertible_to<DELTA&>;
         {travel(travel_params, pop, dt)} -> std::convertible_to<DELTA>;
         {delta(params, pop, dt)}         -> std::convertible_to<DELTA>;

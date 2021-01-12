@@ -103,7 +103,6 @@ class district_model{
                 state.d.pop += pop;
             }
         }
-
     }
 
 

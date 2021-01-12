@@ -15,7 +15,7 @@ struct example_delta{
     auto operator<=>(const example_delta&) const = default;
     bool operator==(const example_delta&) const = default;
 
-    /* DELTA += DELTA*/
+    /* DELTA += DELTA *
     constexpr example_delta& operator+=(const example_delta& rhs){
         delta_red   += rhs.delta_red;
         delta_green += rhs.delta_green;
@@ -23,7 +23,7 @@ struct example_delta{
         return *this;
     }
 
-    /* DELTA -= DELTA*/
+    /* DELTA -= DELTA */
     constexpr example_delta& operator-=(const example_delta& rhs){
         delta_red   -= rhs.delta_red;
         delta_green -= rhs.delta_green;
