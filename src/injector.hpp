@@ -1,27 +1,21 @@
 
-#ifndef _PARAMS_CHANGER__HPP
-#define _PARAMS_CHANGER__HPP
-
-#include "../atomics/population.hpp"
-
+#ifndef _INJECTOR__HPP
+#define _INJECTOR__HPP
 
 #define concept concept_old
 #include <cadmium/modeling/ports.hpp>
 #include <cadmium/modeling/message_bag.hpp>
 #undef concept
 
-
 using namespace cadmium;
 using namespace std;
 
-
-template<typename TIME, typename PARAMS, typename VALUE, typename IDENTIFIER=std::string, typename SCALAR=VALUE>
-    requires(makes_a_valid_district<PARAMS, VALUE, IDENTIFIER, SCALAR>)
-class params_changer{
+template<typename TIME, typename T, typename IDENTIFIER=std::string>
+class injector{
     public:
     //Port definition
     struct ports{
-        struct new_params : public out_port<pair<IDENTIFIER, PARAMS>> { };
+        struct next_value : public out_port<pair<IDENTIFIER, T>> { };
     };
 
     // ports definition
@@ -30,10 +24,10 @@ class params_changer{
 
 
     using output_ports=std::tuple<
-        typename ports::new_params
+        typename ports::next_value
          >;
 
-    using state_queue_type = vector<tuple<TIME, IDENTIFIER, PARAMS>>;
+    using state_queue_type = vector<tuple<TIME, IDENTIFIER, T>>;
 
     struct state_type{
         state_queue_type q;
@@ -43,10 +37,10 @@ class params_changer{
 
 
     // default constructor
-	params_changer() = default;
+	injector() = default;
 
 	// constructor with passed variable
-    params_changer(state_queue_type rule_change_set) : state{rule_change_set, 0}{
+    injector(state_queue_type rule_change_set) : state{rule_change_set, {0}}{
         sort(begin(state.q), end(state.q), [](const auto& lhs, const auto& rhs){return get<0>(lhs) < get<0>(rhs);});
 	}
 
@@ -78,18 +72,18 @@ class params_changer{
     typename make_message_bags<output_ports>::type output() const {
         typename make_message_bags<output_ports>::type bags;
         /* send 1 new set of params */
-        get_messages<typename ports::new_params>(bags).push_back({get<1>(state.q[0]), get<2>(state.q[0])});
+        get_messages<typename ports::next_value>(bags).push_back({get<1>(state.q[0]), get<2>(state.q[0])});
 
         return bags;
     }
 
     // confluence transition
-    void confluence_transition(TIME e, typename make_message_bags<input_ports>::type mbs) {
+    void confluence_transition(TIME, typename make_message_bags<input_ports>::type mbs) {
 		internal_transition();
         external_transition({0}, move(mbs));
     }
 
-    friend ostringstream& operator<<(ostringstream& os, const typename params_changer<TIME, PARAMS, VALUE, IDENTIFIER, SCALAR>::state_type& i) {
+    friend ostringstream& operator<<(ostringstream& os, const typename injector<TIME, T, IDENTIFIER>::state_type& i) {
         os << i.q.size() << " to go";
 
 		return os;
@@ -97,4 +91,4 @@ class params_changer{
 
 };
 
-#endif /* _PARAMS_CHANGER__HPP */
+#endif /* _INJECTOR__HPP */

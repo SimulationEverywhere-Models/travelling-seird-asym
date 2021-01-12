@@ -19,7 +19,7 @@ https://doi.org/10.3390/jcm9020462
 
 /*the ./atomics/../atomics/foo.hpp works just fine*/
 
-#include "../atomics/population.hpp"
+#include "../atomics/seird_asym_population.hpp"
 
 struct seird_asym_paper_params {
     double c;  /* contact_rate  */
@@ -77,35 +77,35 @@ std::istream& operator>>(std::istream& is, seird_asym_paper_params& mp){
     return is;
 }
 
-constexpr double susceptible_to_exposed      (const population& pop, const seird_asym_paper_params& params){
+constexpr double susceptible_to_exposed      (const seird_asym_population& pop, const seird_asym_paper_params& params){
     return params.c * ( pop.infective + params.t * pop.asymptomatic ) * pop.susceptible *   params.b *(1-params.q);
 }
-constexpr double susceptible_to_exposed_q    (const population& pop, const seird_asym_paper_params& params){
+constexpr double susceptible_to_exposed_q    (const seird_asym_population& pop, const seird_asym_paper_params& params){
     return params.c * ( pop.infective + params.t * pop.asymptomatic ) * pop.susceptible *   params.b *   params.q;
 }
-constexpr double susceptible_to_susceptible_q(const population& pop, const seird_asym_paper_params& params){
+constexpr double susceptible_to_susceptible_q(const seird_asym_population& pop, const seird_asym_paper_params& params){
     return params.c * ( pop.infective + params.t * pop.asymptomatic ) * pop.susceptible *(1-params.b)*   params.q;
 }
 
-constexpr double susceptible_q_to_susceptible(const population& pop, const seird_asym_paper_params& params){return params.l * pop.susceptible_q;}
+constexpr double susceptible_q_to_susceptible(const seird_asym_population& pop, const seird_asym_paper_params& params){return params.l * pop.susceptible_q;}
 
-constexpr double exposed_to_infective       (const population& pop, const seird_asym_paper_params& params){return params.e *   params.n * pop.exposed;}
-constexpr double exposed_to_asymptomatic    (const population& pop, const seird_asym_paper_params& params){return params.e *(1-params.n)* pop.exposed;}
+constexpr double exposed_to_infective       (const seird_asym_population& pop, const seird_asym_paper_params& params){return params.e *   params.n * pop.exposed;}
+constexpr double exposed_to_asymptomatic    (const seird_asym_population& pop, const seird_asym_paper_params& params){return params.e *(1-params.n)* pop.exposed;}
 
-constexpr double exposed_q_to_infective_q   (const population& pop, const seird_asym_paper_params& params){return params.dq * pop.exposed_q;}
+constexpr double exposed_q_to_infective_q   (const seird_asym_population& pop, const seird_asym_paper_params& params){return params.dq * pop.exposed_q;}
 
-constexpr double infective_to_infective_q(const population& pop, const seird_asym_paper_params& params){return params.di * pop.infective;}
-constexpr double infective_to_recovered  (const population& pop, const seird_asym_paper_params& params){return params.yi * pop.infective;}
-constexpr double infective_to_deceased   (const population& pop, const seird_asym_paper_params& params){return params.a  * pop.infective;}
+constexpr double infective_to_infective_q(const seird_asym_population& pop, const seird_asym_paper_params& params){return params.di * pop.infective;}
+constexpr double infective_to_recovered  (const seird_asym_population& pop, const seird_asym_paper_params& params){return params.yi * pop.infective;}
+constexpr double infective_to_deceased   (const seird_asym_population& pop, const seird_asym_paper_params& params){return params.a  * pop.infective;}
 
-constexpr double infective_q_to_recovered(const population& pop, const seird_asym_paper_params& params){return params.yh * pop.infective_q;}
-constexpr double infective_q_to_deceased (const population& pop, const seird_asym_paper_params& params){return params.a  * pop.infective_q;}
+constexpr double infective_q_to_recovered(const seird_asym_population& pop, const seird_asym_paper_params& params){return params.yh * pop.infective_q;}
+constexpr double infective_q_to_deceased (const seird_asym_population& pop, const seird_asym_paper_params& params){return params.a  * pop.infective_q;}
 
-constexpr double asymptomatic_to_recovered     (const population& pop, const seird_asym_paper_params& params){return params.ya * pop.asymptomatic;}
+constexpr double asymptomatic_to_recovered     (const seird_asym_population& pop, const seird_asym_paper_params& params){return params.ya * pop.asymptomatic;}
 
 /* asymptomatic_q is not in the paper, so they get the same equations as infective_q*/
-constexpr double asymptomatic_q_to_recovered(const population& pop, const seird_asym_paper_params& params){return params.yh * pop.asymptomatic_q;}
-constexpr double asymptomatic_q_to_deceased (const population& pop, const seird_asym_paper_params& params){return params.a  * pop.asymptomatic_q;}
+constexpr double asymptomatic_q_to_recovered(const seird_asym_population& pop, const seird_asym_paper_params& params){return params.yh * pop.asymptomatic_q;}
+constexpr double asymptomatic_q_to_deceased (const seird_asym_population& pop, const seird_asym_paper_params& params){return params.a  * pop.asymptomatic_q;}
 
 /*
 
@@ -121,51 +121,61 @@ double recovered;
 double deceased;
 
 */
-__attribute__((flatten)) constexpr  population delta(const population& pop, const seird_asym_paper_params& params, const double dt){
-    population temp{
-        /* susceptible */
+__attribute__((flatten)) constexpr seird_asym_population delta(const seird_asym_paper_params& params, const seird_asym_population& pop, auto&& dt)
+    requires(std::integral<std::remove_cvref_t<decltype(dt)>> || std::floating_point<std::remove_cvref_t<decltype(dt)>>){
+    return {
+        /* susceptible */(
             +susceptible_q_to_susceptible(pop, params)
             -susceptible_to_susceptible_q(pop, params)
             -susceptible_to_exposed(pop, params)
             -susceptible_to_exposed_q(pop, params)
-        ,/* susceptible_q */
+        )*dt
+        ,/* susceptible_q */(
             +susceptible_to_susceptible_q(pop, params)
             -susceptible_q_to_susceptible(pop, params)
-        ,/* exposed */
+        )*dt
+        ,/* exposed */(
             +susceptible_to_exposed(pop, params)
             -exposed_to_infective(pop, params)
             -exposed_to_asymptomatic(pop, params)
-        ,/* exposed_q */
+        )*dt
+        ,/* exposed_q */(
             +susceptible_to_exposed_q(pop, params)
             -exposed_q_to_infective_q(pop, params)
-        ,/* infective */
+        )*dt
+        ,/* infective */(
             +exposed_to_infective(pop, params)
             -infective_to_infective_q(pop, params)
             -infective_to_recovered(pop, params)
             -infective_to_deceased(pop, params)
-        ,/* infective_q */
+        )*dt
+        ,/* infective_q */(
             +exposed_q_to_infective_q(pop, params)
             +infective_to_infective_q(pop, params)
             -infective_q_to_recovered(pop, params)
             -infective_q_to_deceased(pop, params)
-        ,/* asymptomatic */
+        )*dt
+        ,/* asymptomatic */(
             +exposed_to_asymptomatic(pop, params)
             -asymptomatic_to_recovered(pop, params)
-        ,/* asymptomatic_q */
+        )*dt
+        ,/* asymptomatic_q */(
             -asymptomatic_q_to_recovered(pop, params)
             -asymptomatic_q_to_deceased(pop, params)
-        ,/* recovered */
+        )*dt
+        ,/* recovered */(
             +infective_to_recovered(pop, params)
             +infective_q_to_recovered(pop, params)
             +asymptomatic_to_recovered(pop, params)
             +asymptomatic_q_to_recovered(pop, params)
-        ,/* deceased */
+        )*dt
+        ,/* deceased */(
             +infective_to_deceased(pop, params)
             +infective_q_to_deceased(pop, params)
             +asymptomatic_q_to_deceased(pop, params)
+        )*dt
     };
-    temp*=dt;
-    return temp;
 }
+
 
 #endif /* _SEIRD_ASYM_PAPER_PARAMS__HPP */

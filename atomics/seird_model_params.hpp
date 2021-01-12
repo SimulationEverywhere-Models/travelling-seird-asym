@@ -13,7 +13,7 @@ see: github.com/SimulationEverywhere-Models/Cadmium-SEIRD for this model on it's
 
 /*the ./atomics/../atomics/foo.hpp works just fine*/
 
-#include "../atomics/population.hpp"
+#include "../atomics/seird_asym_population.hpp"
 
 struct seird_model_params{
     double mortality;
@@ -64,7 +64,8 @@ double pop.deceased;
 
     I assume that q leads to more q, that q does not move around, and that asymptomatic do not die
 */
-__attribute__((flatten)) constexpr  population delta(const population& pop, const seird_model_params& params, const double dt){
+__attribute__((flatten)) constexpr seird_asym_population delta(const seird_model_params& params, const seird_asym_population& pop, auto&& dt)
+    requires(std::integral<std::remove_cvref_t<decltype(dt)>> || std::floating_point<std::remove_cvref_t<decltype(dt)>>){
     auto total_moving_pop = pop.susceptible + pop.exposed + pop.infective + pop.asymptomatic + pop.recovered;
 
     auto susceptible_to_exposed = std::min(dt * params.transmission_rate * pop.susceptible * pop.infective / total_moving_pop, pop.susceptible);
