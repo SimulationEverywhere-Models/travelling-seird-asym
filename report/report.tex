@@ -8,7 +8,7 @@
 
 \usepackage{graphicx}
 
-\title{Habitat Connectivity Modelling with Spatial Absorbing Cell DEVS}
+\title{Modelling Covid spread and travel using a problem specific formalism implemented in PDEVS}
 \author{Griffin Barrett}
 
 \graphicspath{ {./images/} }
@@ -20,7 +20,7 @@
 	\maketitle
 	\begin{abstract}
 		\begin{center}
-		Quantifying landscape connectivity and animal movements in Cell-DEVS.
+		Over the Fall 2020 term, I worked on generalizing a PDEVS Covid model that I had made the previous summer. This report talks about the direction that effort took and the new tech that came out if it.
 		\end{center}
 	\end{abstract}
 \end{@twocolumnfalse}
@@ -34,14 +34,11 @@ Over the summer of 2020, many Covid spread models were developed by the lab usin
 
 \FloatBarrier
 
-\textit{I plan to talk about Multi-Paradigm Modelling, about how there is a trade off between having a more broad and powerful formalism and more narrow and easy to use formalisms}
+Multi-paradigm modelling[1] is a technique where instead of writing an entire simulator in one language with one tool under one formalism, you write different parts of that simulator in the way that is the most useful locally, and you use some more general set of tools to link them together.
 
+You can see something like this whenever you write a program in more than one language, or in one language making calls into a library written in another language. In the case of programming, the common ground that is used to connect these parts is usually the operating system and machine code. In the more formal world of modelling, the common ground is some modelling formalism that can be used to fully describe all of the disparate parts of the simulator in question.
 
-\textit{How many papers/reports/presentations do you think start with 'Figure 1, Formalism Transformation Graph (FTG)'?}
-
-
-
-\begin{figure}[h!]
+\begin{figure}[!ht]
 	\begin{center}
 		\includegraphics[width=18em]{Formalism-Transformation-Graph-FTG.png}
 		\caption{Formalism Transformation Graph (FTG)[1]}
@@ -49,25 +46,27 @@ Over the summer of 2020, many Covid spread models were developed by the lab usin
 	\end{center}
 \end{figure}
 
-Lorum ipsom \ref{fig:ftg}, blah blah.
+% How many papers/reports/presentations do you think start with 'Figure 1, Formalism Transformation Graph (FTG)'?
+
+Figure \ref{fig:ftg} is a directed graph of which simulation formalisms have been proven to be able to describe which others. When linking any set of systems together, you need to find some common super-formalism to describe everything in. For any combination, that includes only formalisms that are either naturally discreet, or can reasonably be discretised, the DEVS family of formalisms can be used as this super-formalism.
 
 \FloatBarrier
 
 \subsection{DEVS}
 
+DEVS represents everything within the simulation frame as ether an atomic model, or as a collection of connected models called a coupled model, and represents everything that can happen within the simulation frame as a transition. Transitions that a model applies to itself internally called internal transitions, and transitions that one model apply to another model, or that one model apply to itself using the external communication mechanism, are called external transitions.
 
-\textit{DEVS is a very powerful super-formalism, but how it's complexity isn't always meaningful when there is a more narrow problem specific formalisum available.}
+Each atomic model describes it's state, the set of types of messages that it can receive, the set of types of messages that it can send, and the five functions that are required of it. These functions are: the internal transition function, the external transition function, the confluent function for cases where both the internal and external are fired at the same time, the output function, and the time advance function. 
 
-\textit{DEVS is good, but all of the gory implementation details distracted me from working on what I was actually trying to do, so I designed a layer of abstraction, a problem specific formalism, to make development faster}
+Each coupled model describes how the models that it contains are interconnected, what types of inputs and outputs the coupled model handles, and what order to run the functions of the sub models.
 
-\textit{I think that I can probably implement DEVS in terms of my formalism too, should I try/put any time into it?}
-
+All of this is sufficiently powerful and general to implement just about anything that we could want to represent, but this comes at the cost of the pieces being small and fiddly. This positions it in roughly the same place as machine code is relative to general computer programs. You \textit{can} to just about anything with it, but if there are tools to smooth out the rough edges, they can be used to great effect in speeding up the development process.
 
 \section{My Formalism}
 
-\subsection{Overview}
+My formalism, that is yet unnamed, is built on top of PDEVS, which itself is an extension of DEVS that handles simultaneous events more naturally. It can be thought of in the same way any of the many formalisms in figure \ref{fig:ftg} that are directly described by DEVS. It is more narrow than DEVS, but with that it also has fewer and more simple parts that the modeller needs to work with by hand.
 
-$I still need a name for this thing, don't I?$
+\subsection{Overview}
 
 This technique encapsulates the local computation in a territory into a thing called a district. 
 A district can represent anything from a house, to a block, to a city or country.
@@ -150,7 +149,7 @@ global_advance(
 
 \subsection{PDEVS implementation}
 
-This is the PDEVS implementation that is used in the project so far. It is also prescribed, though again every type within the district that is left to the modeler above is also left to them here.
+This is formal definition for the sample implementation of my formalism. This may not be the best way to implement it in general, and it may not even be the best way to implement it in PDEVS, but that is for the software engineers to argue about. For now, it works and at this stage in it's development that is good enough.
 
 \begin{verbatim}
 
@@ -244,7 +243,9 @@ There \textbf{should not} be duplicated $id$s, and districts with duplicate $id$
 \section{Results}
 \FloatBarrier
 
-\begin{figure}[h!]
+To test out that this formalism can work, I re-implemented the model from the summer in it, and compared it back to the original paper that all of this model's computational method is based on. As you can see in figure \ref{fig:overlay}, the output perfectly lines up with the diagram from the first paper, to within the resolution of the diagrams provided by that paper.
+
+\begin{figure}[!ht]
 	\begin{center}
 		\includegraphics[width=18em]{figure_a_overlay.png}
 		\caption{Figure A from original paper[2] (Top), Output from reimplementation (Middle), An overlay to scale of both figures (Bottom)}
@@ -252,7 +253,6 @@ There \textbf{should not} be duplicated $id$s, and districts with duplicate $id$
 	\end{center}
 \end{figure}
 
-As we can see in figure \ref{fig:overlay}, blah
 
 \FloatBarrier
 \section{Improvements and Future Work}
@@ -263,11 +263,9 @@ Another area of development is the formatting of the output. Unlike generalized 
 
 This formalism is compostable, but it is not modular at any scale above a single district. There may be value in also defining a kind of meta district that contains some number of others. It remains to be seen if this will actually be useful at runtime, as opposed to simply flattening the model at construction time, but it should be implemented and tested before it is discarded.
 
-\section{Conclusion}
+\section{Code}
 
-%This model effectively implements modern ecological connectivity techniques using the Cell-DEVS formalism. This model demonstrates the emergent behaviour present is other sophisticated models, and is relatively simple and straightforward to understand and work with. 
-
-%See \url{https://github.com/xlirate/Cadmin-Cell-DEVS-SAMC} for the code.
+\url{https://github.com/xlirate/Cadmin-Cell-DEVS-SAMC}
 
 \section{Bibliography}
 
@@ -276,21 +274,6 @@ This formalism is compostable, but it is not modular at any scale above a single
 \item Lara, Juan \& Vangheluwe, Hans. (2002). Computer Aided Multi-paradigm Modelling to Process Petri-Nets and Statecharts. 239-253. 10.1007/3-540-45832-8\_19. \url{http://dx.doi.org/10.1007/3-540-45832-8_19}
 
 \item Tang, B., Wang, X., Li, Q., Bragazzi, N. L., Tang, S., Xiao, Y., \& Wu, J. (2020).Estimation of the Transmission Risk of the 2019-nCoV and Its Implication forPublic Health Interventions. Journal of clinical medicine, 9(2), 462.\url{https://doi.org/10.3390/jcm9020462}
-
-
-%\item Taylor, P. D. et al. 1993. Connectivity is a vital element of landscape
-%structure. – Oikos 68: 571–573. \url{
-%	https://doi.org/10.2307/3544927 }
-
-%\item Fletcher Jr., R. J. et al. 2011. Social network models predict movement and connectivity in ecological landscapes. – Proc. Natl
-%Acad. Sci. USA 108: 19282–19287. \url{https://doi.org/10.1073/pnas.1107549108}
-%
-%\item Sawyer, S. C. et al. 2011. Placing linkages among fragmented habitats: do least-cost models reflect how animals use landscapes?
-%– J. Appl. Ecol. 48: 668–678. \url{https://doi.org/10.1111/j.1365-2664.2011.01970.x}
-
-%\item Beyer, H. L. et al. 2019. Substantial losses in ecoregion intactness highlights urgency of globally coordinated action. – Conservation Letters. 2020; 13:e12692. \url{https://doi.org/10.1111/conl.12692}
-
-%\item Marx, A.J. et al. 2020. samc: an R package for connectivity modeling with spatial absorbing Markov chains. – Ecography, 43: 518-527. \url{https://doi.org/10.1111/ecog.04891}
 
 \end{enumerate}
 
