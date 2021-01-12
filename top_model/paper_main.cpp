@@ -24,8 +24,6 @@
 
 #include "../atomics/seird_asym_population.hpp"
 #include "../atomics/seird_asym_paper_params.hpp"
-#include "../atomics/seird_model_params.hpp"
-
 
 #include "../src/district.hpp"
 #include "../src/district_model.hpp"
@@ -76,18 +74,13 @@ using paper_district = district<TIME, seird_asym_paper_params, seird_asym_popula
 template<typename T> using paper_model = district_model<T, seird_asym_paper_params, seird_asym_population>;
 template<typename T> using paper_params_changer = injector<T, seird_asym_paper_params>;
 
-using seird_district = district<TIME, seird_model_params, seird_asym_population>;
-template<typename T> using seird_model = district_model<T, seird_model_params, seird_asym_population>;
-template<typename T> using seird_params_changer = injector<T, seird_model_params>;
-
 int main(){
     TIME dt = 0.01;
 	/****** Station Passenger Generator instantiations *******************/
         /* see ../atomics/population.hpp and for a description of what is what. This can also be constructed piecemeal */
 
 
-
-    paper_district sample_d_10{"control",
+    paper_district sample_d_10{"c=1.0",
         {14.781, 2.1011e-8, 1.8887e-7, 0.142857, 0.071428, 0.86834, 0.13266, 0.1259, 0.33029, 0.13978, 0.11624, 1.7826e-5, 0},
         {11081000, 739, 105.1, 1.1642, 27.679, 1, 53.839, 0, 2, 0},
         {}};
@@ -127,24 +120,13 @@ int main(){
 	shared_ptr<dynamic::modeling::model> c03 = dynamic::translate::make_dynamic_atomic_model<paper_model, TIME, paper_district, TIME>("c=0.3", std::move(sample_d_03), TIME(dt));
 	shared_ptr<dynamic::modeling::model> c01 = dynamic::translate::make_dynamic_atomic_model<paper_model, TIME, paper_district, TIME>("c=0.1", std::move(sample_d_01), TIME(dt));
 
-
-    seird_district seird_sample{"simple seird town",
-        /* mortality(as a fraction, not a %), infectivity_period, incubation_period, transmission_rate */
-        {0.105, 14, 5, 2.5},
-        /* susceptible, _, exposed, _, infective, _, _, _, recovered, deceased */
-        {100000, 0, 0, 0, 100, 0, 0, 0, 0, 0},
-        {}};
-
-	shared_ptr<dynamic::modeling::model> seird_town = dynamic::translate::make_dynamic_atomic_model<seird_model, TIME, seird_district, TIME>("simple seird town", std::move(seird_sample), TIME(1));
-
     dynamic::modeling::Ports iports_SEIRD = {};
     dynamic::modeling::Ports oports_SEIRD  = {
             typeid(SEIRD_defs::report)};
 
     dynamic::modeling::Models submodels_SEIRD  = {
             rule_changer,
-            c10, c08, c05, c03, c01,
-            seird_town};
+            c10, c08, c05, c03, c01};
 
     dynamic::modeling::EICs eics_SEIRD  = {};
     dynamic::modeling::EOCs eocs_SEIRD  = {
@@ -152,8 +134,7 @@ int main(){
             dynamic::translate::make_EOC<paper_model<TIME>::ports::report, SEIRD_defs::report>("c=0.8"),
             dynamic::translate::make_EOC<paper_model<TIME>::ports::report, SEIRD_defs::report>("c=0.5"),
             dynamic::translate::make_EOC<paper_model<TIME>::ports::report, SEIRD_defs::report>("c=0.3"),
-            dynamic::translate::make_EOC<paper_model<TIME>::ports::report, SEIRD_defs::report>("c=0.1"),
-            dynamic::translate::make_EOC<seird_model<TIME>::ports::report, SEIRD_defs::report>("simple seird town")};
+            dynamic::translate::make_EOC<paper_model<TIME>::ports::report, SEIRD_defs::report>("c=0.1")};
 
     /* Each model MUST be piped into itself to function */
 
@@ -163,8 +144,6 @@ int main(){
             dynamic::translate::make_IC<paper_model<TIME>::ports::people_out, paper_model<TIME>::ports::people_in>("c=0.5", "c=0.5"),
             dynamic::translate::make_IC<paper_model<TIME>::ports::people_out, paper_model<TIME>::ports::people_in>("c=0.3", "c=0.3"),
             dynamic::translate::make_IC<paper_model<TIME>::ports::people_out, paper_model<TIME>::ports::people_in>("c=0.1", "c=0.1"),
-
-            dynamic::translate::make_IC<seird_model<TIME>::ports::people_out, seird_model<TIME>::ports::people_in>("simple seird town", "simple seird town"),
 
             dynamic::translate::make_IC<paper_params_changer<TIME>::ports::next_value, paper_model<TIME>::ports::new_params>("Lockdown mesures start", "c=0.8"),
             dynamic::translate::make_IC<paper_params_changer<TIME>::ports::next_value, paper_model<TIME>::ports::new_params>("Lockdown mesures start", "c=0.5"),

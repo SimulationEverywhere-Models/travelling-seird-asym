@@ -9,17 +9,23 @@ bin_folder := $(shell mkdir -p bin)
 build_folder := $(shell mkdir -p build)
 results_folder := $(shell mkdir -p simulation_results)
 
-default: simulator
+default: all
 
-#TARGET TO COMPILE ONLY SIMULATOR
-main_top.o: top_model/main.cpp
-	$(CC) -g -c $(CFLAGS) $(INCLUDECADMIUM) $(INCLUDEDESTIMES) top_model/main.cpp -o build/main_top.o
+example_main.o: top_model/example_main.cpp
+	$(CC) -g -c $(CFLAGS) $(INCLUDECADMIUM) $(INCLUDEDESTIMES) top_model/example_main.cpp -o build/example_main.o
 
-simulator: main_top.o
-	$(CC) -g -o bin/seird build/main_top.o
+example: example_main.o
+	$(CC) -g -o bin/example build/example_main.o
+
+
+paper_main.o: top_model/paper_main.cpp
+	$(CC) -g -c $(CFLAGS) $(INCLUDECADMIUM) $(INCLUDEDESTIMES) top_model/paper_main.cpp -o build/paper_main.o
+
+paper: paper_main.o
+	$(CC) -g -o bin/paper build/paper_main.o
 
 #TARGET TO COMPILE EVERYTHING
-all: simulator tests
+all: example paper
 
 #CLEAN COMMANDS
 clean:
