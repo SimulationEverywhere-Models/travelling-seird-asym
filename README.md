@@ -13,14 +13,9 @@ http://www.sce.carleton.ca/courses/sysc-5104/lib/exe/fetch.php?media=cadmiumuser
 1. Install Cadmium following the instructions in the manual:
 http://www.sce.carleton.ca/courses/sysc-5104/lib/exe/fetch.php?media=cadmiumusermanual.pdf
 
-2. Clone the repository inside the folder: *Cadmium-Simulation-Environment/DEVS-Models*
-https://github.com/SimulationEverywhere-Models/Cadmium-SEIR-Asyn
+2. Clone this repository inside the folder: *Cadmium-Simulation-Environment/DEVS-Models*
 
 3. Compile the model using the make file
-
-## Model implimentations
-
-See https://github.com/SimulationEverywhere-Models/Cadmium-SEIR-Asyn and https://github.com/SimulationEverywhere-Models/Cadmium-SEIRD as both models in this repo are reimplementations of those
 
 ## Modify the model
 

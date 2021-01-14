@@ -66,7 +66,123 @@ All of this is sufficiently powerful and general to implement just about anythin
 
 My formalism, that is yet unnamed, is built on top of PDEVS, which itself is an extension of DEVS that handles simultaneous events more naturally. It can be thought of in the same way any of the many formalisms in figure \ref{fig:ftg} that are directly described by DEVS. It is more narrow than DEVS, but with that it also has fewer and more simple parts that the modeller needs to work with by hand.
 
-\subsection{Overview}
+\subsection{Design}
+
+If we consider only modelling the movement of people between territories, what do we need? We need something to represent the territory, some way to represent people that are moving, and some way to work out how many people should move. Lets start with the simplest possible implementation of that, a number for people in an area, a number for people moving, and a proportion between 0 and 1 of the population in an area that are going to leave in a time step.
+
+\begin{verbatim}
+<
+  id::ID
+  pop::REAL
+  travel_rates::MAP<::ID, ::REAL>
+>::DIST
+
+local_advance(dist::DIST):
+| output::MAP<::ID, ::DELTA> = {}
+| 
+| for id, travel in dist.travel_rates:
+| | output[id] = dist.pop*travel
+| 
+| for _, left in output:
+| | dist.pop = dist.pop - left
+|
+| return output
+
+local_apply(
+|   dist::DIST, 
+|   deltas::SET<::DELTA>
+|   ):
+| for delta in deltas:
+| | dist.pop = 
+| |   dist.add(dist.pop, delta)
+
+global_advance(
+|   dists::MAP<::ID, ::DIST>,
+|   ):
+| messages::MAP<::ID, ::SET<::DELTA>> = {}
+| 
+| for _, dist in dists:
+| | for id, delta in 
+| | |   local_advance(dist):
+| | | messages[id].add(delta)
+| 
+| for id, deltas in messages:
+| | local_apply(dists[id], deltas)
+
+\end{verbatim}
+
+Ok, this works, but the extra loop at the end of $local_advance$ to remove the people that left is a bit inelegant. What if, instead of doing that, when we send a group of people away, we also send the negation of that group back to where they came? That way, the subtraction happens in $local_collect$ instead.
+
+Now $local_advance$ looks like this:
+
+\begin{verbatim}
+
+local_advance(dist::DIST):
+| output::MAP<::ID, ::DELTA> = {}
+| delta_pop = 0
+| 
+| for id, travel in dist.travel_rates:
+| | delta_travel = dist.pop*travel
+| | output[id] = delta_travel
+| | delta_pop = delta_pop - delta_travel 
+|
+| output[dist.id] = delta_pop
+|
+| return output
+
+\end{verbatim}
+
+That looks better. Now, how do we model the population in a territory changing over time? 
+Lets start with the most simple version of this that we can think of, a proportion of people die every time step.
+What would it look like if, instead of starting $delta_pop$ at 0, we started it at a value that represents the amount that the population changes on it's own?
+That way, when it gets re-applied in $local_collect$, the change happens simultaneously with the people leaving.
+
+\begin{verbatim}
+
+<
+  id::ID
+  pop::REAL
+  death_rate::REAL
+  travel_rates::MAP<::ID, ::REAL>
+>::DIST
+
+local_advance(dist::DIST):
+| output::MAP<::ID, ::DELTA> = {}
+| delta_pop = -dist.pop*dist.death_rate
+| 
+| for id, travel in dist.travel_rates:
+| | delta_travel = dist.pop*travel
+| | output[id] = delta_travel
+| | delta_pop = delta_pop - delta_travel 
+|
+| output[dist.id] = delta_pop
+|
+| return output
+	
+\end{verbatim}
+
+This is starting to come together, now lets generalize. First thing to go is the assumption that the time step is 1. Lets add in a value for delta time.
+
+\begin{verbatim}
+
+local_advance(dist::DIST, dt::REAL):
+| output::MAP<::ID, ::DELTA> = {}
+| delta_pop = -dist.pop*dist.death_rate*dt
+| 
+| for id, travel in dist.travel_rates:
+| | delta_travel = dist.pop*travel*dt
+| | output[id] = delta_travel
+| | delta_pop = delta_pop - delta_travel 
+|
+| output[dist.id] = delta_pop
+|
+| return output
+	
+\end{verbatim}
+
+Now we have all the pieces in place. The next and last step is to go through and pull out all of the decisions. Instead of using real numbers for everything, we will allow any value of any consistent set of types. When we do that, we also need to allow the multiplication, addition, and subtraction in out system to be replaced with other functions that take and give the correct types. These changes take us right up to the final version described in full in the next sections.
+
+\subsection{Informal}
 
 This technique encapsulates the local computation in a territory into a thing called a district. 
 A district can represent anything from a house, to a block, to a city or country.
@@ -265,7 +381,10 @@ This formalism is compostable, but it is not modular at any scale above a single
 
 \section{Code}
 
-\url{https://github.com/xlirate/Cadmin-Cell-DEVS-SAMC}
+The code for the first implementation of all of this can be found here: \url{https://github.com/xlirate/Cadmin-Cell-DEVS-SAMC}.
+It is built on top of the Cadmium simulation library, which can be found here: \url{https://github.com/SimulationEverywhere/cadmium}.
+
+See \url{http://www.sce.carleton.ca/courses/sysc-5104/lib/exe/fetch.php?media=cadmiumusermanual.pdf} for instructions on how to set it up.
 
 \section{Bibliography}
 
@@ -273,7 +392,10 @@ This formalism is compostable, but it is not modular at any scale above a single
 
 \item Lara, Juan \& Vangheluwe, Hans. (2002). Computer Aided Multi-paradigm Modelling to Process Petri-Nets and Statecharts. 239-253. 10.1007/3-540-45832-8\_19. \url{http://dx.doi.org/10.1007/3-540-45832-8_19}
 
-\item Tang, B., Wang, X., Li, Q., Bragazzi, N. L., Tang, S., Xiao, Y., \& Wu, J. (2020).Estimation of the Transmission Risk of the 2019-nCoV and Its Implication forPublic Health Interventions. Journal of clinical medicine, 9(2), 462.\url{https://doi.org/10.3390/jcm9020462}
+\item Tang, B., Wang, X., Li, Q., Bragazzi, N. L., Tang, S., Xiao, Y., \& Wu, J. (2020).
+Estimation of the Transmission Risk of the 2019-nCoV and Its Implication for
+Public Health Interventions. Journal of clinical medicine, 9(2), 462.
+\url{https://doi.org/10.3390/jcm9020462}
 
 \end{enumerate}
 
